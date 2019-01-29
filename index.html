@@ -1,0 +1,118 @@
+<script type="text/javascript" src="librarySystem.js"></script>
+<script type="text/javascript" src="simpletest.js"></script>
+
+<script>
+    
+    tests({
+    
+        'librarySystem can accept one dependency': function() {
+            purgeLibraries();
+            librarySystem('A', [], function() {
+                    return 'This is Library A';
+                });
+            librarySystem('B', ['A'], function(A) {
+                    return 'This is Library B, dependent on: ' + A;
+                });
+            eq(librarySystem('B'), 'This is Library B, dependent on: This is Library A');
+        },
+
+        'librarySystem can accept zero dependencies': function() {
+            purgeLibraries();
+            librarySystem('A', [], function() {
+                    return 'This is Library A';
+                });
+            eq(librarySystem('A'), 'This is Library A');
+        },
+
+        'librarySystem can accept four dependencies': function() {
+            purgeLibraries();
+            librarySystem('A', [], function() {
+                    return 'Library A';
+                });
+            librarySystem('B', [], function() {
+                    return 'Library B';
+                });
+            librarySystem('C', [], function() {
+                    return 'Library C';
+                });
+            librarySystem('D', [], function() {
+                    return 'Library D';
+                });
+            librarySystem('E', ['A', 'B', 'C', 'D'], function(A, B, C, D) {
+                    return 'This is Library E, dependent on: ' + A + ', ' + B + ', ' + C + ', ' + D;
+                });
+            eq(librarySystem('E'), 'This is Library E, dependent on: Library A, Library B, Library C, Library D');
+        },
+
+        'Dependencies can be created out of order': function() {
+            purgeLibraries();
+            librarySystem('A', [], function() {
+                    return 'Library A';
+                });
+            librarySystem('B', [], function() {
+                    return 'Library B';
+                });
+            librarySystem('E', ['A', 'B', 'C', 'D'], function(A, B, C, D) {
+                    return 'This is Library E, dependent on: ' + A + ', ' + B + ', ' + C + ', ' + D;
+                });
+            librarySystem('C', [], function() {
+                    return 'Library C';
+                });
+            librarySystem('D', [], function() {
+                    return 'Library D';
+                });
+            eq(librarySystem('E'), 'This is Library E, dependent on: Library A, Library B, Library C, Library D');
+        },
+
+        'A tree of dependencies can be resolved recursively': function() {
+            purgeLibraries();
+            librarySystem('A2', [], function() {
+                    return 'A2';
+                });
+            librarySystem('D', ['B1', 'C', 'B2'], function(B1, C, B2) {
+                    return 'D' + B1 + C + B2;
+                });
+            librarySystem('B2', ['A1', 'A3'], function(A1, A3) {
+                    return 'B2' + A1 + A3;
+                });
+            librarySystem('C', ['A2', 'B2'], function(A2, B2) {
+                    return 'C' + A2 + B2;
+                });
+            librarySystem('A3', [], function() {
+                    return 'A3';
+                });
+            librarySystem('B1', ['A1', 'A2'], function(A1, A2) {
+                    return 'B1' + A1 + A2;
+                });
+            librarySystem('A1', [], function() {
+                    return 'A1';
+                });
+
+            eq(librarySystem('D'), 'DB1A1A2CA2B2A1A3B2A1A3');
+        },
+
+        'Each library callback function is called only once': function() {
+            purgeLibraries();
+            var callCount = 0;
+            librarySystem('B', ['A'], function() {
+                    callCount++;
+                });
+            librarySystem('A', [], function() { return "hi"; } );
+            librarySystem('C', ['B'], function() { return "hi"; } );
+
+            // Repetitive creation/invocation of B
+            librarySystem('B', ['A'], function() {
+                    callCount++;
+                });
+            librarySystem('B', ['A'], function() {
+                    callCount++;
+                });
+            librarySystem('B');
+            librarySystem('B');
+
+            eq(callCount, 1);
+        }
+    
+    });
+
+</script>
